@@ -1,0 +1,83 @@
+H DX=900 DY=600 DZ=40 -AB C=0 T=458852 R=1 *MM /"def" V=11
+F =4
+;----------------------------------------------------------------------  
+L HINGE_LEN=165  
+L HINGE_WIDTH=21.5  
+L DEPTH_ARC=8  
+L OFFSET_X=100  
+L OFFSET_Y=10  
+L PASS =8
+L DEPTH_RECT=21.5  
+L STEP_OVER=2 ; tool stepover for pocketing  
+;----------------------------------------------------------------------  
+L HALF_WIDTH=HINGE_WIDTH/2  
+L RECT_LEN=HINGE_LEN-HINGE_WIDTH  
+L END_X=OFFSET_X+HINGE_LEN  
+L END_Y=OFFSET_Y+HINGE_WIDTH  
+L ZR =8
+L ZA = PASS  
+; --- Rectangular Pocket ---
+. label_rect
+IF ZR>=DEPTH_RECT GOTO done_rect
+G0 X=OFFSET_X Y=OFFSET_Y Z=-ZR T=106
+L CUR_Y=OFFSET_Y
+. loop_y
+IF CUR_Y>=END_Y GOTO next_depth
+L CUR_X=OFFSET_X
+G1 X=CUR_X Y=CUR_Y Z=-ZR
+G1 X=OFFSET_X+RECT_LEN Y=CUR_Y Z=-ZR
+L CUR_Y=CUR_Y+STEP_OVER
+GOTO loop_y
+. next_depth
+IF ZR+PASS>=DEPTH_RECT THEN
+   L ZR=DEPTH_RECT
+ELSE
+   L ZR=ZR+PASS
+FI
+GOTO label_rect
+. done_rect
+
+; --- Left Arc Pocketing ---
+L ZA = PASS
+. label_left_arc_depth
+IF ZA > DEPTH_ARC GOTO done_left_arc
+L OFFSET=0
+. label_left_offset
+IF OFFSET >= HALF_WIDTH GOTO next_left_depth
+G0 X=OFFSET_X+OFFSET Y=OFFSET_Y Z=-ZA T=106
+G1 Z=-ZA
+G2 X=OFFSET_X+OFFSET Y=END_Y Z=-ZA r=HALF_WIDTH
+L OFFSET = OFFSET + STEP_OVER
+GOTO label_left_offset
+. next_left_depth
+IF ZA+PASS >= DEPTH_ARC THEN
+   L ZA = DEPTH_ARC
+ELSE
+   L ZA = ZA + PASS
+FI
+GOTO label_left_arc_depth
+. done_left_arc
+
+; --- Right Arc Pocketing ---
+L ZA = PASS
+. label_right_arc_depth
+IF ZA > DEPTH_ARC GOTO done_right_arc
+L OFFSET=0
+. label_right_offset
+IF OFFSET >= HALF_WIDTH GOTO next_right_depth
+L XPOS = OFFSET_X + RECT_LEN - OFFSET
+G0 X=XPOS Y=OFFSET_Y Z=-ZA T=106
+G1 Z=-ZA
+G3 X=XPOS Y=END_Y Z=-ZA r=HALF_WIDTH
+L OFFSET = OFFSET + STEP_OVER
+GOTO label_right_offset
+. next_right_depth
+IF ZA+PASS >= DEPTH_ARC THEN
+   L ZA = DEPTH_ARC
+ELSE
+   L ZA = ZA + PASS
+FI
+GOTO label_right_arc_depth
+. done_right_arc
+
+N X=0 Y=0 V=20

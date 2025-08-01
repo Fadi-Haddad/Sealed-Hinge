@@ -1,0 +1,76 @@
+H DX=900 DY=600 DZ=40 -AB C=0 T=458852 R=1 *MM /"def" V=11
+F=4
+;----------------------------------------------------------------------  
+L HINGE_LEN=165
+L HINGE_WIDTH=21.5
+L DEPTH_ARC=8
+L OFFSET_X=100
+L OFFSET_Y=10
+L PASS=10
+L ANGLE_STEP=10 ; degrees per sweep
+;----------------------------------------------------------------------  
+L HALF_WIDTH=HINGE_WIDTH/2
+L RECT_LEN=HINGE_LEN-HINGE_WIDTH
+L END_X=OFFSET_X+HINGE_LEN
+L END_Y=OFFSET_Y+HINGE_WIDTH
+L ZR=10
+L ZA=8
+
+; --- Rectangular Pocket ---  
+L DEPTH_RECT=21.5
+G0 X=OFFSET_X Y=OFFSET_Y Z=-ZR T=106
+. label_rect
+IF ZR>=DEPTH_RECT GOTO done_rect
+G1 Z=-ZR
+G1 X=OFFSET_X+RECT_LEN Y=OFFSET_Y Z=-ZR
+G1 Y=END_Y
+G1 X=OFFSET_X
+G1 Y=OFFSET_Y
+IF ZR+PASS>=DEPTH_RECT THEN
+  L ZR=DEPTH_RECT
+ELSE
+  L ZR=ZR+PASS
+FI
+GOTO label_rect
+. done_rect
+G1 Z=-ZR
+G1 X=OFFSET_X+RECT_LEN Y=OFFSET_Y Z=-DEPTH_RECT
+G1 Y=END_Y
+G1 X=OFFSET_X
+G1 Y=OFFSET_Y
+
+; --- Left Semicircle Pocket (CCW) ---
+L ZA=8
+L C0=0
+. label_left_depth
+IF ZA>DEPTH_ARC GOTO done_left
+L C0=0
+G0 X=OFFSET_X Y=OFFSET_Y+HALF_WIDTH Z=-ZA T=106
+. label_left_arc
+IF C0>=180 GOTO next_left_pass
+G1 C=C0 X=OFFSET_X Y=OFFSET_Y+HALF_WIDTH Z=-ZA
+L C0=C0+ANGLE_STEP
+GOTO label_left_arc
+. next_left_pass
+L ZA=ZA+PASS
+GOTO label_left_depth
+. done_left
+
+; --- Right Semicircle Pocket (CW) ---
+L ZA=8
+L C0=0
+. label_right_depth
+IF ZA>DEPTH_ARC GOTO done_right
+L C0=180
+G0 X=OFFSET_X+RECT_LEN Y=OFFSET_Y+HALF_WIDTH Z=-ZA T=106
+. label_right_arc
+IF C0<=0 GOTO next_right_pass
+G1 C=C0 X=OFFSET_X+RECT_LEN Y=OFFSET_Y+HALF_WIDTH Z=-ZA
+L C0=C0-ANGLE_STEP
+GOTO label_right_arc
+. next_right_pass
+L ZA=ZA+PASS
+GOTO label_right_depth
+. done_right
+
+N X=0 Y=0 V=20

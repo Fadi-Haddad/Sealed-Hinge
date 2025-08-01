@@ -1,0 +1,91 @@
+H DX=900 DY=600 DZ=40 -AB C=0 T=458852 R=1 *MM /"def" V=11
+F =4
+;----------------------------------------------------------------------  
+L HINGE_LEN=165  
+L HINGE_WIDTH=21.5  
+L DEPTH_ARC=8  
+L OFFSET_X=100  
+L OFFSET_Y=10  
+L PASS=4  
+L DEPTH_RECT=21.5  
+L STEP_OVER=4 ; tool stepover for pocketing  
+;----------------------------------------------------------------------  
+L HALF_WIDTH=HINGE_WIDTH/2  
+L RECT_LEN=HINGE_LEN-HINGE_WIDTH  
+L END_X=OFFSET_X+HINGE_LEN  
+L END_Y=OFFSET_Y+HINGE_WIDTH  
+L ZR=10  
+L ZA=PASS  
+
+; --- Rectangular Pocket ---
+. label_rect
+IF ZR>=DEPTH_RECT GOTO done_rect
+G0 Z=-ZR T=106
+L CUR_Y=OFFSET_Y
+. loop_y
+IF CUR_Y>=END_Y GOTO next_depth
+L CUR_X=OFFSET_X
+G1 X=CUR_X Y=CUR_Y Z=-ZR
+G1 X=OFFSET_X+RECT_LEN Y=CUR_Y Z=-ZR
+L CUR_Y=CUR_Y+STEP_OVER
+GOTO loop_y
+. next_depth
+IF ZR+PASS>=DEPTH_RECT THEN
+   L ZR=DEPTH_RECT
+ELSE
+   L ZR=ZR+PASS
+FI
+GOTO label_rect
+. done_rect
+G1 Z=-DEPTH_RECT
+G1 X=OFFSET_X Y=OFFSET_Y Z=-DEPTH_RECT
+
+; --- Left Arc Pocket ---
+L ZA=PASS
+. label_left
+IF ZA>DEPTH_ARC GOTO done_left
+G0 Z=-ZA T=106
+L CUR_Y=OFFSET_Y
+. loop_left_y
+IF CUR_Y>=END_Y GOTO next_left_depth
+G1 X=OFFSET_X Y=CUR_Y Z=-ZA
+G2 X=OFFSET_X Y=CUR_Y+STEP_OVER Z=-ZA r=HALF_WIDTH
+L CUR_Y=CUR_Y+STEP_OVER
+GOTO loop_left_y
+. next_left_depth
+IF ZA+PASS>=DEPTH_ARC THEN
+   L ZA=DEPTH_ARC
+ELSE
+   L ZA=ZA+PASS
+FI
+GOTO label_left
+. done_left
+G0 X=OFFSET_X Y=OFFSET_Y Z=0 V=10 T=106
+G1 Z=-DEPTH_ARC
+G2 X=OFFSET_X Y=OFFSET_Y+HINGE_WIDTH Z=-DEPTH_ARC r=HALF_WIDTH
+
+; --- Right Arc Pocket ---
+L ZA=PASS
+. label_right
+IF ZA>DEPTH_ARC GOTO done_right
+G0 Z=-ZA T=106
+L CUR_Y=OFFSET_Y
+. loop_right_y
+IF CUR_Y>=END_Y GOTO next_right_depth
+G1 X=OFFSET_X+RECT_LEN Y=CUR_Y Z=-ZA
+G3 X=OFFSET_X+RECT_LEN Y=CUR_Y+STEP_OVER Z=-ZA r=HALF_WIDTH
+L CUR_Y=CUR_Y+STEP_OVER
+GOTO loop_right_y
+. next_right_depth
+IF ZA+PASS>=DEPTH_ARC THEN
+   L ZA=DEPTH_ARC
+ELSE
+   L ZA=ZA+PASS
+FI
+GOTO label_right
+. done_right
+G0 X=OFFSET_X+RECT_LEN Y=OFFSET_Y Z=0 V=10 T=106
+G1 Z=-DEPTH_ARC
+G3 X=OFFSET_X+RECT_LEN Y=OFFSET_Y+HINGE_WIDTH Z=-DEPTH_ARC r=HALF_WIDTH
+
+N X=0 Y=0 V=20

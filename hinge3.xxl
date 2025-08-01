@@ -1,0 +1,124 @@
+H DX=900 DY=600 DZ=40 -AB C=0 T=458852 R=1 *MM /"def" V=11
+F=4
+
+; ===== Parameters =====
+L HINGE_LEN=165
+L HINGE_WIDTH=21.5
+L DEPTH_RECT=21.5
+L DEPTH_ARC=8
+L OFFSET_X=100
+L OFFSET_Y=50
+L PASS_Z=3            ; Z step-down
+L STEP=4              ; lateral stepover (XY)
+L TOOL=106
+L D=16                ; <-- tool diameter (set to your cutter)
+
+; ===== Derived =====
+L HALF_W=HINGE_WIDTH/2
+L RECT_LEN=HINGE_LEN-HINGE_WIDTH
+L X0=OFFSET_X
+L X1=OFFSET_X+RECT_LEN
+L Y0=OFFSET_Y
+L Y1=OFFSET_Y+HINGE_WIDTH
+L Rtool=D/2
+
+T=TOOL
+
+; ---------- Phase A: pocket full hinge shape down to DEPTH_ARC ----------
+L Zp=0
+. z_arc_loop
+IF Zp>=DEPTH_ARC GOTO after_arc
+
+; next depth with clamp
+IF Zp+PASS_Z>DEPTH_ARC THEN
+  L Zp=DEPTH_ARC
+ELSE
+  L Zp=Zp+PASS_Z
+FI
+
+; concentric hinge contours (offset U from the boundary)
+L U=Rtool
+. u_arc_loop
+IF U>HALF_W GOTO end_u_arc
+
+L R=HALF_W-U
+L XL=X0+U
+L XR=X1-U
+L YB=Y0+U
+L YT=Y1-U
+L YM=Y0+HALF_W
+
+; if R>0 do semicircle ends; else do a center straight sweep
+IF R>0 THEN
+  G0 X=XL Y=YB Z=-Zp
+  G1 X=XR
+  G3 X=XR Y=YT Z=-Zp r=R      ; right semicircle (CCW) up
+  G1 X=XL
+  G2 X=XL Y=YB Z=-Zp r=R      ; left semicircle (CW) down
+ELSE
+  G0 X=XL Y=YM Z=-Zp
+  G1 X=XR                     ; final center line
+FI
+
+; U increment with clamp
+IF U+STEP>HALF_W THEN
+  L U=HALF_W
+ELSE
+  L U=U+STEP
+FI
+GOTO u_arc_loop
+. end_u_arc
+GOTO z_arc_loop
+. after_arc
+
+; ---------- Phase B: pocket rectangle from DEPTH_ARC to DEPTH_RECT ----------
+L Zp=DEPTH_ARC
+. z_rect_loop
+IF Zp>=DEPTH_RECT GOTO after_rect
+
+IF Zp+PASS_Z>DEPTH_RECT THEN
+  L Zp=DEPTH_RECT
+ELSE
+  L Zp=Zp+PASS_Z
+FI
+
+; concentric rectangles (no arcs) to avoid overcutting semi-circles
+L U=Rtool
+. u_rect_loop
+IF U>HALF_W GOTO end_u_rect
+
+L XL=X0+U
+L XR=X1-U
+L YB=Y0+U
+L YT=Y1-U
+
+G0 X=XL Y=YB Z=-Zp
+G1 X=XR
+G1 Y=YT
+G1 X=XL
+G1 Y=YB
+
+IF U+STEP>HALF_W THEN
+  L U=HALF_W
+ELSE
+  L U=U+STEP
+FI
+GOTO u_rect_loop
+. end_u_rect
+GOTO z_rect_loop
+. after_rect
+
+; ---------- Optional finishing passes with compensation ----------
+; Uncomment if you want crisp walls:
+; C=1
+; G0 X=X0 Y=Y0 Z=-DEPTH_ARC T=TOOL
+; G1 X=X1
+; G3 X=X1 Y=Y1 Z=-DEPTH_ARC r=HALF_W
+; G1 X=X0
+; G2 X=X0 Y=Y0 Z=-DEPTH_ARC r=HALF_W
+; G0 Z=-DEPTH_RECT
+; G1 X=X1 Y=Y0 Z=-DEPTH_RECT
+; G1 Y=Y1
+; G1 X=X0
+; G1 Y=Y0
+; C=0
