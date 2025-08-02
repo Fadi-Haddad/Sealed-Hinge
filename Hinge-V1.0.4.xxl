@@ -1,0 +1,123 @@
+H DX=400 DY=200 DZ=45 -AB C=0 T=458852 R=1 *MM /"def" V=11
+F =4
+;----------------------------------------------------------------------  
+L TOOL_DIAMETER=8
+L HINGE_LEN=165  
+L HINGE_WIDTH =22
+L DEPTH_ARC=8  
+L OFFSET_X =0
+L OFFSET_Y =15
+L PASS =4
+L DEPTH_RECT=21.5  
+L STEP_OVER =6 ;tool stepover for pocketing
+;----------------------------------------------------------------------  
+L TOOL_RADIUS=TOOL_DIAMETER/2
+L OFFSET_X =OFFSET_X+0.5*HINGE_WIDTH
+L OFFSET_Y =OFFSET_Y-0.5*HINGE_WIDTH
+L HALF_WIDTH=HINGE_WIDTH/2 
+L RECT_LEN=HINGE_LEN-HINGE_WIDTH
+L END_X =OFFSET_X+HINGE_LEN-HINGE_WIDTH
+L END_Y=OFFSET_Y+HINGE_WIDTH  
+L ZR =8
+; --- Left Arc Pocketing ---
+C=2  ; Left compensation for precise arc interior
+L ZA = 0
+. label_left_arc_depth
+L ZA = ZA + PASS          ; Increment depth FIRST
+IF ZA > DEPTH_ARC THEN    ; Then limit it if needed
+   L ZA = DEPTH_ARC
+FI
+L OFFSET=0
+. label_left_offset
+IF OFFSET >= HALF_WIDTH GOTO next_left_depth
+G0 X=OFFSET_X+OFFSET Y=OFFSET_Y Z=-ZR T=106
+G1 Z=-ZA
+G2 X=OFFSET_X+OFFSET Y=END_Y Z=-ZA r=HALF_WIDTH
+L OFFSET = OFFSET + STEP_OVER
+GOTO label_left_offset
+. next_left_depth
+IF ZA >= DEPTH_ARC GOTO done_left_arc  ; Check if we're done
+GOTO label_left_arc_depth
+. done_left_arc
+C=0  ; Reset compensation
+;---------------------- Rectangular Middle Section Pocketing (Undersized Zigzag) ----------------------------------------------------------
+L ZR =0
+. label_rect_depth
+L ZR =ZR + PASS
+IF ZR > DEPTH_RECT THEN
+   L ZR =DEPTH_RECT
+FI
+L Y_CURRENT =OFFSET_Y+TOOL_RADIUS
+G0 X=OFFSET_X+TOOL_RADIUS Y=Y_CURRENT Z=ZR T=106
+G1 Z=-ZR
+. label_rect_zigzag
+; Move RIGHT (left to right)
+G1 X=END_X-TOOL_RADIUS Y=Y_CURRENT Z=-ZR
+L Y_CURRENT =Y_CURRENT + STEP_OVER
+IF Y_CURRENT > END_Y-TOOL_RADIUS THEN
+   ; Final pass at exact edge
+   G1 X=END_X-TOOL_RADIUS Y=END_Y-TOOL_RADIUS Z=-ZR
+   G1 X=OFFSET_X+TOOL_RADIUS Y=END_Y-TOOL_RADIUS Z=-ZR
+   GOTO next_rect_depth
+FI
+; Step up and move LEFT (right to left)
+G1 X=END_X-TOOL_RADIUS Y=Y_CURRENT Z=-ZR
+G1 X=OFFSET_X+TOOL_RADIUS Y=Y_CURRENT Z=-ZR
+L Y_CURRENT =Y_CURRENT + STEP_OVER
+IF Y_CURRENT > END_Y-TOOL_RADIUS THEN
+   ; Final pass at exact edge
+   G1 X=OFFSET_X+TOOL_RADIUS Y=END_Y-TOOL_RADIUS Z=-ZR
+   G1 X=END_X-TOOL_RADIUS Y=END_Y-TOOL_RADIUS Z=-ZR
+   GOTO next_rect_depth
+FI
+; Step up and continue zigzag
+G1 X=OFFSET_X+TOOL_RADIUS Y=Y_CURRENT Z=-ZR
+GOTO label_rect_zigzag
+. next_rect_depth
+IF ZR >= DEPTH_RECT GOTO rect_perimeter_cleanup
+GOTO label_rect_depth
+. rect_perimeter_cleanup
+; Perimeter cleanup at original coordinates with C=2 compensation
+C=2  ; Left compensation - tool stays left of path
+L ZR =0
+. label_perimeter_depth
+L ZR =ZR + PASS
+IF ZR > DEPTH_RECT THEN
+   L ZR =DEPTH_RECT
+FI
+; Perimeter path: Bottom-Left → Bottom-Right → Top-Right → Top-Left → Bottom-Left
+G0 X=OFFSET_X Y=OFFSET_Y Z=ZR T=106
+G1 Z=-ZR
+G1 X=END_X Y=OFFSET_Y Z=-ZR         ; Bottom-Left to Bottom-Right
+G1 X=END_X Y=END_Y Z=-ZR            ; Bottom-Right to Top-Right  
+G1 X=OFFSET_X Y=END_Y Z=-ZR         ; Top-Right to Top-Left
+G1 X=OFFSET_X Y=OFFSET_Y Z=-ZR      ; Top-Left to Bottom-Left (complete loop)
+. next_perimeter_depth
+IF ZR >= DEPTH_RECT GOTO done_rect
+GOTO label_perimeter_depth
+. done_rect
+C=0  ; Reset compensation
+;--- Right Arc Pocketing -----------------------------------------------------------------------------------------------------------------------------------------------------
+C=1  ; Right compensation for precise arc interior
+L ZA =0
+. label_right_arc_depth
+L ZA = ZA + PASS
+IF ZA > DEPTH_ARC THEN
+   L ZA = DEPTH_ARC
+FI
+L OFFSET=0
+. label_right_offset
+IF OFFSET >= HALF_WIDTH GOTO next_right_depth
+G0 X=END_X-OFFSET Y=OFFSET_Y Z=-ZA T=106
+G1 Z=-ZA
+G3 X=END_X-OFFSET Y=END_Y Z=-ZA r=HALF_WIDTH
+L OFFSET = OFFSET + STEP_OVER
+GOTO label_right_offset
+. next_right_depth
+IF ZA >= DEPTH_ARC GOTO done_right_arc
+GOTO label_right_arc_depth
+. done_right_arc
+C=0  ; Reset compensation
+; --- Final rapid out ---
+G0 Z=50
+N X=0 Y=0 V=20
