@@ -9,6 +9,7 @@ L OFFSET_X =0
 L OFFSET_Y =15
 L PASS =4 ;step-down distance
 L DEPTH_RECT=21.5  
+L DEPTH_RECT2=21.5  
 L STEP_OVER =6 ;pocketing step
 ;----------------------------------------------------------------------  
 L TOOL_RADIUS=TOOL_DIAMETER/2
@@ -109,7 +110,8 @@ IF Y_CURRENT > END_Y-TOOL_RADIUS THEN
    G1 X=OFFSET_X+TOOL_RADIUS+29 Y=END_Y-TOOL_RADIUS Z=-ZR
    GOTO next_rect_depth2
 FI   
-; Step up and move LEFT (right to left)
+; Step up and move LEFT (right to left)
+
 G1 X=END_X-TOOL_RADIUS-29 Y=Y_CURRENT Z=-ZR
 G1 X=OFFSET_X+TOOL_RADIUS+29 Y=Y_CURRENT Z=-ZR
 L Y_CURRENT =Y_CURRENT + STEP_OVER
@@ -126,7 +128,8 @@ GOTO label_rect_zigzag2
 IF ZR >= DEPTH_RECT2 GOTO rect_circum_cleanup2
 GOTO label_rect_depth2
 . rect_circum_cleanup2
-; Perimeter cleanup at original coordinates with C=2 compensation
+; Perimeter cleanup at original coordinates with C=2 compensation
+
 C=2 ; Left compensation - tool stays left of path
 L ZR =0
 . label_circum_depth2
@@ -138,9 +141,12 @@ FI
 G0 X=OFFSET_X+TOOL_RADIUS+29 Y=OFFSET_Y+TOOL_RADIUS Z=ZR T=106
 G1 Z=-ZR
 G1 X=END_X-TOOL_RADIUS-29 Y=OFFSET_Y+TOOL_RADIUS Z=-ZR ;Bottom-Left to Bottom-Right
-G1 X=END_X-TOOL_RADIUS-29 Y=END_Y-TOOL_RADIUS Z=-ZR ;Bottom-Right to Top-Right
-G1 X=OFFSET_X+TOOL_RADIUS+29 Y=END_Y-TOOL_RADIUS Z=-ZR ;Top-Right to Top-Left
-G1 X=OFFSET_X+TOOL_RADIUS+29 Y=OFFSET_Y+TOOL_RADIUS Z=-ZR ;Top-Left to Bottom-Left (complete loop)
+G1 X=END_X-TOOL_RADIUS-29 Y=END_Y-TOOL_RADIUS Z=-ZR ;Bottom-Right to Top-Right
+
+G1 X=OFFSET_X+TOOL_RADIUS+29 Y=END_Y-TOOL_RADIUS Z=-ZR ;Top-Right to Top-Left
+
+G1 X=OFFSET_X+TOOL_RADIUS+29 Y=OFFSET_Y+TOOL_RADIUS Z=-ZR ;Top-Left to Bottom-Left (complete loop)
+
 . next_perimeter_depth2
 IF ZR >= DEPTH_RECT2 GOTO done_rect2
 GOTO label_circum_depth2
